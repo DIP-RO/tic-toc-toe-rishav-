@@ -44,6 +44,9 @@ class App {
     this.refreshHud();
     this.refreshStats();
     this.startTime = performance.now();
+
+    // Test hook for driving the game in dev; stripped from production builds
+    if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = this;
   }
 
   // ===== Start screen =====

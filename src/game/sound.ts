@@ -10,7 +10,6 @@ export class SoundEngine {
 
   setEnabled(v: boolean) {
     this.enabled = v;
-    if (!v) this.stopMusic();
   }
 
   setMusicEnabled(v: boolean) {
@@ -27,7 +26,6 @@ export class SoundEngine {
   }
 
   private ensure(): AudioContext | null {
-    if (!this.enabled) return null;
     if (!this.ctx) {
       try {
         const Ctor = window.AudioContext || (window as any).webkitAudioContext;
@@ -45,6 +43,7 @@ export class SoundEngine {
   }
 
   private tone(freq: number, dur: number, type: OscillatorType = "sine", vol = 0.18, delay = 0) {
+    if (!this.enabled) return;
     const ctx = this.ensure();
     if (!ctx) return;
     const t0 = ctx.currentTime + delay;
@@ -61,6 +60,7 @@ export class SoundEngine {
   }
 
   private sweep(f1: number, f2: number, dur: number, type: OscillatorType = "sawtooth", vol = 0.15) {
+    if (!this.enabled) return;
     const ctx = this.ensure();
     if (!ctx) return;
     const t0 = ctx.currentTime;

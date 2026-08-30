@@ -190,8 +190,11 @@ html, body {
   justify-content: center;
   gap: 10px;
   margin: 8px 0 4px;
+  /* Let taps in the transparent strip fall through to the 3D board */
+  pointer-events: none;
 }
 .btn-icon {
+  pointer-events: auto;
   width: 44px; height: 44px;
   display: grid; place-items: center;
   border: 1px solid var(--panel-border);
@@ -206,19 +209,17 @@ html, body {
 .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
 .btn-icon svg { display: block; }
 
-/* spacer to push canvas area */
-#canvas-spacer { flex: 1 1 auto; position: relative; z-index: 1; }
-
 /* ===== Overlay ===== */
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 50;
   display: grid;
-  place-items: center;
   background: rgba(5, 5, 20, 0.7);
   backdrop-filter: blur(8px);
   animation: fadeIn 0.3s ease;
+  overflow-y: auto;
+  padding: 20px;
 }
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 .overlay-card {
@@ -228,7 +229,9 @@ html, body {
   padding: 32px 28px 24px;
   text-align: center;
   max-width: 340px;
-  width: calc(100% - 40px);
+  width: 100%;
+  /* margin:auto centers without clipping when taller than the viewport */
+  margin: auto;
   animation: popIn 0.4s cubic-bezier(0.22,1,0.36,1);
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
@@ -402,7 +405,6 @@ html, body {
   inset: 0;
   z-index: 70;
   display: grid;
-  place-items: center;
   background: rgba(5, 5, 20, 0.78);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -418,6 +420,7 @@ html, body {
   text-align: center;
   max-width: 380px;
   width: 100%;
+  margin: auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   animation: popIn 0.4s cubic-bezier(0.22,1,0.36,1);
 }
@@ -519,4 +522,28 @@ html, body {
   #xp-bar-wrap { margin: 4px 4px 2px; }
   #actions { margin: 4px 0 2px; }
   .btn-icon { width: 38px; height: 38px; }
+}
+
+/* Short screens: compact start/overlay cards so they fit without scrolling */
+@media (max-height: 520px) {
+  .start-card { padding: 12px 18px 10px; }
+  .start-logo { margin-bottom: 2px; }
+  .start-logo span { font-size: 22px; width: 32px; height: 32px; border-radius: 9px; }
+  .start-title { font-size: 19px; margin: 2px 0 0; }
+  .start-subtitle { margin: 0 0 10px; font-size: 12px; }
+  .opponent-choice { margin-bottom: 10px; gap: 8px; }
+  .opp-card { padding: 8px; gap: 2px; }
+  .opp-emoji { font-size: 22px; }
+  .opp-name { font-size: 13px; }
+  .opp-desc { font-size: 10px; }
+  .start-difficulty { margin-bottom: 10px; }
+  .start-difficulty h3 { margin: 0 0 6px; font-size: 11px; }
+  .seg button { padding: 6px; font-size: 12px; min-width: 52px; }
+  .start-btn { padding: 10px; font-size: 14px; }
+  .btn-link { font-size: 12px; padding: 4px; }
+  .overlay-card { padding: 16px 18px 12px; }
+  .overlay-emoji { font-size: 38px; margin-bottom: 4px; }
+  .overlay-card h2 { font-size: 20px; }
+  .overlay-stats { margin-bottom: 12px; gap: 14px; }
+  #overlay-subtitle { margin-bottom: 10px; }
 }

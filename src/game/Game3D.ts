@@ -36,6 +36,10 @@ export class Game3D {
   private onCellClick: (index: number) => void;
   private rafId = 0;
   private pieceAnimQueue: { mesh: THREE.Object3D; born: number }[] = [];
+  private baseMat!: THREE.MeshStandardMaterial;
+  private lineMat!: THREE.MeshStandardMaterial;
+  private bgUniforms!: { top: { value: THREE.Color }; bottom: { value: THREE.Color } };
+  private rimLight!: THREE.PointLight;
 
   constructor(canvas: HTMLCanvasElement, theme: Theme, onCellClick: (i: number) => void) {
     this.theme = theme;
@@ -77,6 +81,7 @@ export class Game3D {
     const rim = new THREE.PointLight(this.theme.glow, 1.4, 30);
     rim.position.set(-6, 4, -6);
     this.scene.add(rim);
+    this.rimLight = rim;
     const fill = new THREE.PointLight(0x6688ff, 0.6, 25);
     fill.position.set(6, 3, 6);
     this.scene.add(fill);
@@ -85,12 +90,13 @@ export class Game3D {
   private buildBackground() {
     // Gradient background via large sphere
     const geo = new THREE.SphereGeometry(50, 32, 32);
+    this.bgUniforms = {
+      top: { value: new THREE.Color(this.theme.bg) },
+      bottom: { value: new THREE.Color(this.theme.bg2) },
+    };
     const mat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
-      uniforms: {
-        top: { value: new THREE.Color(this.theme.bg) },
-        bottom: { value: new THREE.Color(this.theme.bg2) },
-      },
+      uniforms: this.bgUniforms,
       vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
       fragmentShader: `varying vec3 vP; uniform vec3 top; uniform vec3 bottom;
         void main(){ float h=normalize(vP).y*0.5+0.5; vec3 c=mix(bottom,top,h); gl_FragColor=vec4(c,1.0);} `,
@@ -136,6 +142,7 @@ export class Game3D {
       emissive: this.boardColor,
       emissiveIntensity: 0.12,
     });
+    this.baseMat = baseMat;
     const base = new THREE.Mesh(baseGeo, baseMat);
     base.position.y = -BOARD_DEPTH / 2 - 0.05;
     base.receiveShadow = true;
@@ -149,6 +156,7 @@ export class Game3D {
       metalness: 0.3,
       roughness: 0.4,
     });
+    this.lineMat = lineMat;
     const lineLen = total;
     const lineT = 0.09;
     // 2 vertical + 2 horizontal dividers
@@ -175,7 +183,7 @@ export class Game3D {
       });
       const hover = new THREE.Mesh(hoverGeo, hoverMat);
       hover.rotation.x = -Math.PI / 2;
-      hover.position.y = 0.06;
+      hover.position.set(pos.x, 0.06, pos.z);
       hover.userData.index = i;
       this.boardGroup.add(hover);
 
@@ -327,6 +335,17 @@ export class Game3D {
     this.oColor = s.oColor;
     this.boardColor = s.boardColor;
     this.anim = s.boardAnim;
+
+    // Repaint board, grid, background, fog and glow to match the new settings
+    this.baseMat.color.setHex(s.boardColor);
+    this.baseMat.emissive.setHex(s.boardColor);
+    this.lineMat.color.setHex(theme.grid);
+    this.lineMat.emissive.setHex(theme.grid);
+    this.bgUniforms.top.value.setHex(theme.bg);
+    this.bgUniforms.bottom.value.setHex(theme.bg2);
+    (this.scene.fog as THREE.Fog).color.setHex(theme.fog);
+    this.rimLight.color.setHex(theme.glow);
+
     // Refresh existing pieces' colors
     for (const cell of this.cells) {
       if (cell.piece) {
@@ -398,10 +417,48 @@ export class Game3D {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
-    // Pull camera back on narrow screens so the board fits
-    const narrow = w / h < 0.75;
-    this.camera.position.set(0, narrow ? 9 : 7.5, narrow ? 12 : 9.5);
-    this.camera.lookAt(0, 0, 0);
+
+    // Frame the board in the free area below the HUD/action buttons:
+    // iterate camera distance until the projected board bounds fit, then
+    // shift the look target so the board centers in that free area.
+    const hudBottom = document.getElementById("actions")?.getBoundingClientRect().bottom ?? 0;
+    const pad = 10;
+    const freeTop = Math.min(hudBottom + pad, h * 0.45);
+    const freeH = h - freeTop - pad;
+    // Steepen the view on narrow screens: a more top-down angle projects a
+    // taller board, filling portrait layouts instead of leaving dead space.
+    const steep = Math.min(1, Math.max(0, (0.9 - w / h) / 0.45));
+    const dir = new THREE.Vector3(0, 7.5 + steep * 3.5, 9.5 - steep * 3.5).normalize();
+    const half = (CELL_SIZE + GAP) * 1.5 + 0.4; // board half-extent incl. rim
+    const corners: THREE.Vector3[] = [];
+    for (const x of [-half, half])
+      for (const z of [-half, half])
+        for (const y of [-BOARD_DEPTH - 0.1, 1.1]) // base bottom .. piece tops (+float headroom)
+          corners.push(new THREE.Vector3(x, y, z));
+
+    let dist = 12;
+    let box = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    for (let iter = 0; iter < 4; iter++) {
+      this.camera.position.copy(dir).multiplyScalar(dist);
+      this.camera.lookAt(0, 0, 0);
+      this.camera.updateMatrixWorld(true);
+      box = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+      for (const c of corners) {
+        const p = c.clone().project(this.camera);
+        const px = ((p.x + 1) / 2) * w;
+        const py = ((1 - p.y) / 2) * h;
+        box.minX = Math.min(box.minX, px); box.maxX = Math.max(box.maxX, px);
+        box.minY = Math.min(box.minY, py); box.maxY = Math.max(box.maxY, py);
+      }
+      const scale = Math.max((box.maxX - box.minX) / (0.95 * w), (box.maxY - box.minY) / (0.95 * freeH));
+      if (scale > 0.98 && scale < 1.02) break;
+      dist = Math.min(34, Math.max(8, dist * scale));
+    }
+
+    const offPx = (freeTop + freeH / 2) - (box.minY + box.maxY) / 2;
+    const vHalf = Math.tan(((this.camera.fov / 2) * Math.PI) / 180);
+    const yOff = (offPx * 2 * dist * vHalf) / h;
+    this.camera.lookAt(0, yOff, 0);
   }
 
   // ===== Render loop =====
