@@ -360,6 +360,8 @@ export class Game3D {
         cell.piece = piece;
       }
     }
+    // Reframe: spin mode needs a wider fit than float/static
+    this.resize();
   }
 
   // ===== Events =====
@@ -430,11 +432,19 @@ export class Game3D {
     const steep = Math.min(1, Math.max(0, (0.9 - w / h) / 0.45));
     const dir = new THREE.Vector3(0, 7.5 + steep * 3.5, 9.5 - steep * 3.5).normalize();
     const half = (CELL_SIZE + GAP) * 1.5 + 0.4; // board half-extent incl. rim
+    // Spin mode sweeps the corners through a circle of radius half*sqrt(2)
+    const footprint: [number, number][] = [];
+    if (this.anim === "spin") {
+      const r = half * Math.SQRT2;
+      for (let a = 0; a < 8; a++)
+        footprint.push([Math.cos((a * Math.PI) / 4) * r, Math.sin((a * Math.PI) / 4) * r]);
+    } else {
+      for (const x of [-half, half]) for (const z of [-half, half]) footprint.push([x, z]);
+    }
     const corners: THREE.Vector3[] = [];
-    for (const x of [-half, half])
-      for (const z of [-half, half])
-        for (const y of [-BOARD_DEPTH - 0.1, 1.1]) // base bottom .. piece tops (+float headroom)
-          corners.push(new THREE.Vector3(x, y, z));
+    for (const [x, z] of footprint)
+      for (const y of [-BOARD_DEPTH - 0.3, 1.3]) // base bottom .. piece tops (+float bob headroom)
+        corners.push(new THREE.Vector3(x, y, z));
 
     let dist = 12;
     let box = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
@@ -457,8 +467,16 @@ export class Game3D {
 
     const offPx = (freeTop + freeH / 2) - (box.minY + box.maxY) / 2;
     const vHalf = Math.tan(((this.camera.fov / 2) * Math.PI) / 180);
-    const yOff = (offPx * 2 * dist * vHalf) / h;
+    // Only the view-perpendicular component of a world-Y shift moves the
+    // board on screen, so divide by dir.z (cosine of the downward pitch).
+    const yOff = (offPx * 2 * dist * vHalf) / (h * dir.z);
     this.camera.lookAt(0, yOff, 0);
+
+    // Keep the board clear of the fog now that camera distance is dynamic
+    // (its farthest corner sits at roughly dist + 6)
+    const fog = this.scene.fog as THREE.Fog;
+    fog.near = dist + 7;
+    fog.far = dist + 30;
   }
 
   // ===== Render loop =====
