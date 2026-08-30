@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a0a1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>Tic Tac Toe 3D</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Top HUD -->
+      <header id="hud">
+        <div class="hud-side">
+          <div class="player-card" id="player-x-card">
+            <span class="player-symbol">X</span>
+            <div class="player-meta">
+              <span class="player-name" id="player-x-name">You</span>
+              <span class="player-score" id="player-x-score">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="turn-indicator" id="turn-indicator">
+            <span class="turn-label">Turn</span>
+            <span class="turn-symbol" id="turn-symbol">X</span>
+          </div>
+          <div class="streak-badge" id="streak-badge" hidden>
+            <span id="streak-text">🔥 Streak 0</span>
+          </div>
+        </div>
+
+        <div class="hud-side">
+          <div class="player-card right" id="player-o-card">
+            <div class="player-meta">
+              <span class="player-name" id="player-o-name">CPU</span>
+              <span class="player-score" id="player-o-score">0</span>
+            </div>
+            <span class="player-symbol o">O</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- XP / Level bar -->
+      <div id="xp-bar-wrap">
+        <div class="xp-info">
+          <span class="level-pill" id="level-pill">Lv 1</span>
+          <span class="xp-text" id="xp-text">0 / 100 XP</span>
+        </div>
+        <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+      </div>
+
+      <!-- Action buttons -->
+      <div id="actions">
+        <button class="btn-icon" id="btn-new" title="New Game" aria-label="New Game">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-customize" title="Customize" aria-label="Customize">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19.14 12.94a7.9 7.9 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.9 7.9 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.31.6.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.21.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-sound" title="Sound" aria-label="Toggle Sound">
+          <svg id="sound-on" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12z"/></svg>
+          <svg id="sound-off" viewBox="0 0 24 24" width="22" height="22" hidden><path fill="currentColor" d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.96 8.96 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-music" title="Music" aria-label="Toggle Music">
+          <svg id="music-on" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+          <svg id="music-off" viewBox="0 0 24 24" width="22" height="22" hidden><path fill="currentColor" d="M4.27 3L3 4.27 6.73 8H3v2h3.73l4 4L8.46 14.27A4 4 0 1 0 10 17v-3.18l1.55 1.55A4 4 0 0 0 16 19v-1.18l4.73 4.73L22 21.27 4.27 3zM12 3v6.18l2 2V7h4V3h-6z"/></svg>
+        </button>
+      </div>
+
+      <!-- Game over overlay -->
+      <div id="overlay" class="overlay" hidden>
+        <div class="overlay-card">
+          <div class="overlay-emoji" id="overlay-emoji">🎉</div>
+          <h2 id="overlay-title">You Win!</h2>
+          <p id="overlay-subtitle">+50 XP earned</p>
+          <div class="overlay-stats">
+            <div class="stat"><span id="ov-moves">0</span><label>Moves</label></div>
+            <div class="stat"><span id="ov-time">0s</span><label>Time</label></div>
+            <div class="stat"><span id="ov-xp">+0</span><label>XP</label></div>
+          </div>
+          <button class="btn-primary" id="overlay-continue">Play Again</button>
+        </div>
+      </div>
+
+      <!-- Customization panel -->
+      <div id="customize-panel" class="panel" hidden>
+        <div class="panel-header">
+          <h2>Customize</h2>
+          <button class="btn-close" id="customize-close" aria-label="Close">✕</button>
+        </div>
+
+        <div class="panel-body">
+          <section class="opt-group">
+            <h3>Game Mode</h3>
+            <div class="seg" id="mode-seg">
+              <button data-mode="pvc" class="active">vs CPU</button>
+              <button data-mode="pvp">2 Players</button>
+            </div>
+          </section>
+
+          <section class="opt-group" id="difficulty-group">
+            <h3>Difficulty</h3>
+            <div class="seg" id="diff-seg">
+              <button data-diff="easy">Easy</button>
+              <button data-diff="medium" class="active">Medium</button>
+              <button data-diff="hard">Hard</button>
+              <button data-diff="impossible">Impossible</button>
+            </div>
+          </section>
+
+          <section class="opt-group">
+            <h3>Theme</h3>
+            <div class="theme-grid" id="theme-grid"></div>
+          </section>
+
+          <section class="opt-group">
+            <h3>Board Color</h3>
+            <div class="color-row" id="board-colors"></div>
+          </section>
+
+          <section class="opt-group">
+            <h3>X Color</h3>
+            <div class="color-row" id="x-colors"></div>
+          </section>
+
+          <section class="opt-group">
+            <h3>O Color</h3>
+            <div class="color-row" id="o-colors"></div>
+          </section>
+
+          <section class="opt-group">
+            <h3>Piece Style</h3>
+            <div class="seg" id="piece-seg">
+              <button data-piece="solid" class="active">Solid</button>
+              <button data-piece="glass">Glass</button>
+              <button data-piece="neon">Neon</button>
+              <button data-piece="metal">Metal</button>
+            </div>
+          </section>
+
+          <section class="opt-group">
+            <h3>Board Animation</h3>
+            <div class="seg" id="anim-seg">
+              <button data-anim="float" class="active">Float</button>
+              <button data-anim="spin">Spin</button>
+              <button data-anim="static">Static</button>
+            </div>
+          </section>
+
+          <section class="opt-group">
+            <h3>Your Name</h3>
+            <input type="text" id="name-input" class="text-input" maxlength="12" placeholder="Player 1" />
+          </section>
+
+          <section class="opt-group">
+            <h3>Ambient Music</h3>
+            <div class="seg" id="music-seg">
+              <button data-music="on" class="active">On</button>
+              <button data-music="off">Off</button>
+            </div>
+            <div class="slider-row">
+              <label class="slider-label">Volume</label>
+              <input type="range" id="music-volume" class="slider" min="0" max="100" value="35" />
+            </div>
+          </section>
+
+          <section class="opt-group">
+            <h3>Stats</h3>
+            <div class="stats-grid">
+              <div class="stat-box"><span id="st-wins">0</span><label>Wins</label></div>
+              <div class="stat-box"><span id="st-losses">0</span><label>Losses</label></div>
+              <div class="stat-box"><span id="st-draws">0</span><label>Draws</label></div>
+              <div class="stat-box"><span id="st-best">0</span><label>Best Streak</label></div>
+            </div>
+            <button class="btn-danger" id="btn-reset-stats">Reset Stats</button>
+          </section>
+        </div>
+      </div>
+
+      <!-- Achievement toast -->
+      <div id="toast" class="toast" hidden>
+        <span class="toast-icon">🏆</span>
+        <div class="toast-body">
+          <span class="toast-title" id="toast-title">Achievement!</span>
+          <span class="toast-desc" id="toast-desc"></span>
+        </div>
+      </div>
+
+      <!-- Start screen: choose opponent -->
+      <div id="start-screen" class="start-screen">
+        <div class="start-card">
+          <div class="start-logo">
+            <span class="logo-x">X</span>
+            <span class="logo-o">O</span>
+          </div>
+          <h1 class="start-title">Tic Tac Toe</h1>
+          <p class="start-subtitle">3D &middot; Choose your opponent</p>
+
+          <div class="opponent-choice">
+            <button class="opp-card" id="opp-robot" data-mode="pvc">
+              <span class="opp-emoji">🤖</span>
+              <span class="opp-name">Robot</span>
+              <span class="opp-desc">Play vs AI</span>
+            </button>
+            <button class="opp-card" id="opp-human" data-mode="pvp">
+              <span class="opp-emoji">👥</span>
+              <span class="opp-name">Real Opponent</span>
+              <span class="opp-desc">2 players, 1 device</span>
+            </button>
+          </div>
+
+          <div class="start-difficulty" id="start-difficulty">
+            <h3>Difficulty</h3>
+            <div class="seg" id="start-diff-seg">
+              <button data-diff="easy">Easy</button>
+              <button data-diff="medium" class="active">Medium</button>
+              <button data-diff="hard">Hard</button>
+              <button data-diff="impossible">Impossible</button>
+            </div>
+          </div>
+
+          <button class="btn-primary start-btn" id="start-play">Start Game</button>
+          <button class="btn-link" id="start-customize">Customize ⚙</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
