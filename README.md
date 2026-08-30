@@ -2,6 +2,8 @@
 
 A 3D animated, mobile-responsive Tic Tac Toe game built with TypeScript and Three.js.
 
+**🎮 Play it live: [tic-toc-toe-three-sigma.vercel.app](https://tic-toc-toe-three-sigma.vercel.app)**
+
 ## Features
 
 - **3D WebGL board** with animated pieces (drop-in bounce, idle rotation, float)
